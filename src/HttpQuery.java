@@ -17,7 +17,7 @@ public class HttpQuery {
             OutputStream os=socket.getOutputStream();
             PrintWriter pw=new PrintWriter(os);
             String request = "GET "+path+" HTTP/1.1\r\nHost: "+authority
-            		+"\r\nConnection: keep-alive\r\nUser-agent:　Mozilla/5.0\r\n"
+            		+"\r\nConnection: keep-alive\r\nUser-agent: Mozilla/5.0\r\n"
             		+"Accept-language: zh-CN\r\n\r\n";
             pw.write(request);
             pw.flush();
@@ -26,8 +26,13 @@ public class HttpQuery {
             InputStream is=socket.getInputStream();
             BufferedReader br=new BufferedReader(new InputStreamReader(is));
             
+            boolean output = false;
             while((info=br.readLine())!=null){
-                System.out.println(info);
+            	//System.out.println("any output: "+info);
+            	if (output)
+            		System.out.println(info);
+            	if (info.startsWith("<html"))
+            		output = true;
             }
             br.close();
             is.close();
