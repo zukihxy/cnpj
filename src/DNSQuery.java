@@ -8,11 +8,11 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class DNSQuery {	
-	private String dns = "";
-	
-	public String getDns() {
-		return dns;
-	}
+//	private String dns = "";
+//	
+//	public String getDns() {
+//		return dns;
+//	}
 
 	public void query(String address) {		
 		try { 
@@ -68,9 +68,12 @@ public class DNSQuery {
             }
             isdata.skipBytes(2);
             int count = isdata.readShort(); // ANCOUNT
-            count += isdata.readShort(); // NSCOUNT
-            count += isdata.readShort();// ARCOUNT
-            
+            isdata.skipBytes(4); // NSCOUNT ARCOUNT
+            System.out.println(count);
+            if (count == 0) {
+            	System.err.println("DNS error: No such result!");
+            	return;
+            }
             int len;
             int[] buf = new int[4];
             isdata.skipBytes(query_len);
@@ -78,7 +81,7 @@ public class DNSQuery {
             	parseName(isdata); // skip name in RR
             	int type = isdata.readShort();
             	int qclass = isdata.readShort();
-            	//System.out.println(type+" "+qclass);
+            	System.out.println(type+" "+qclass);
             	isdata.skipBytes(4); // TTL
             	if ((type != 0x01 && type != 0x1c) || qclass != 0x01) {            		
                 	len = isdata.readShort();
@@ -89,12 +92,20 @@ public class DNSQuery {
                 	buf = new int[len];              	
                 	for (int j = 0; j < len; j++) 
                 		buf[j] = isdata.read();  
-                	break;
+                	System.out.println(buf[0]+"."+buf[1]+"."+buf[2]+"."+buf[3]);
             	} else if (type == 0x1c) { // IPV6 address
-            		// what's the difference?
+            		len = isdata.readShort();
+                	buf = new int[len/2]; 
+                	System.out.println(len);
+                	for (int j = 0; j < len; j++) 
+                		buf[j] = isdata.readShort();  
+                	System.out.println(buf[0]+":"+buf[1]+":"+buf[2]+":"+buf[3]
+                			+":"+buf[4]+":"+buf[5]+":"+buf[6]+":"+buf[7]);
+            	} else {
+            		System.err.println("DNS error: Broken response!");
+            		return;
             	}
             }            
-        	dns = buf[0]+"."+buf[1]+"."+buf[2]+"."+buf[3];
 		} catch (IOException e) {
 			System.err.println("DNS error: Fail to reslove!");
 		}

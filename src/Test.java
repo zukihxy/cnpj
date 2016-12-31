@@ -10,8 +10,8 @@ public class Test {
 		u.parsingURL(args[0]);
 		DNSQuery d = new DNSQuery();
 		d.query(u.getAuthority());
-		System.out.println(d.getDns());
+		//System.out.println(d.getDns());
 		HttpQuery h = new HttpQuery();
-		h.query(u.getPath(), u.getAuthority(), d.getDns());
+		h.query(u.getPath(), u.getAuthority(), u.getPort());
 	}
 }

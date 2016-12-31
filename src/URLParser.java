@@ -34,7 +34,7 @@ public class URLParser {
 	}
 
 	public void parsingURL(String url) {
-		//schema://authority[:port]/path[? query][# fragment]
+		//schema://authority/path[? query][# fragment]
 		String reg = "^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?";
 		Pattern pattern = Pattern.compile(reg);
 		Matcher matcher = pattern.matcher(url);
