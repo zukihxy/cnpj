@@ -8,7 +8,7 @@ public class URLParser {
 	private String query = "";
 	private String fragment = "";
 	private String port = "";
-	
+
 	public String getPort() {
 		return port;
 	}
@@ -34,7 +34,7 @@ public class URLParser {
 	}
 
 	public void parsingURL(String url) {
-		//schema://authority/path[? query][# fragment]
+		// schema://authority/path[? query][# fragment]
 		String reg = "^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?";
 		Pattern pattern = Pattern.compile(reg);
 		Matcher matcher = pattern.matcher(url);
@@ -46,11 +46,14 @@ public class URLParser {
 			fragment = matcher.group(9);
 			reg = "(.*):([0-9]*)";
 			pattern = Pattern.compile(reg);
-			matcher = pattern.matcher(authority);
-			if (matcher.matches()) {
-				authority = matcher.group(1);
-				port = matcher.group(2);
-			}			
+			if (authority != null) {
+				matcher = pattern.matcher(authority);
+				if (matcher.matches()) {
+					authority = matcher.group(1);
+					port = matcher.group(2);
+				}
+			} else
+				System.err.println("Can not match the URL!");
 		} else {
 			System.err.println("Can not match the URL!");
 		}
