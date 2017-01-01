@@ -92,14 +92,14 @@ public class DNSQuery {
 				}
 				int type = isdata.readByte() & 0xff;
 				int qclass = isdata.readShort() & 0xff;
-				//System.out.println(type + " " + qclass);
+				// System.out.println(type + " " + qclass);
 				isdata.skipBytes(4); // TTL
 				if ((type != 0x01 && type != 0x1c) || qclass != 0x01) {
 					len = isdata.readShort();
 					isdata.skipBytes(len);
 					continue;
 				} else if (type == 0x01) { // IPV4 address
-					//System.out.println(type + " " + qclass);
+					// System.out.println(type + " " + qclass);
 					len = isdata.readShort();
 					buf = new int[len];
 					for (int j = 0; j < len; j++)
@@ -108,7 +108,7 @@ public class DNSQuery {
 				} else if (type == 0x1c) { // IPV6 address
 					len = isdata.readShort();
 					buf = new int[len / 2];
-					//System.out.println(len);
+					// System.out.println(len);
 					for (int j = 0; j < len; j++)
 						buf[j] = isdata.readShort() & 0xff;
 					System.err.println(buf[0] + ":" + buf[1] + ":" + buf[2] + ":" + buf[3] + ":" + buf[4] + ":" + buf[5]

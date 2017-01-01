@@ -34,15 +34,14 @@ public class HttpQuery {
 					+ "Accept-Encoding: gzip, deflate, sdch\r\n" + "\r\n";
 			pw.write(request);
 			System.err.println(request);
+			socket.setSoTimeout(5000);
 			pw.flush();
-			// socket.shutdownOutput();
 
-			// socket.setSoTimeout(5000);
 			InputStream is = socket.getInputStream();
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
 			info = br.readLine();
-			int len = 1;
-			if (info != null && info.startsWith("HTTP/1.1")) {//
+			int len = -1;
+			if (info != null && info.startsWith("HTTP/1.1")) {
 				System.err.println(info);
 				if (info.split(" ").length != 3) {
 					System.err.println("Http error: Broken response: " + info + "!");
@@ -51,12 +50,8 @@ public class HttpQuery {
 				boolean output = false;
 				boolean chuncked = false;
 				boolean gzip = false;
-				while ((info = br.readLine()) != null) {// len > 0 &&
-					// System.out.println("any:"+info);
-
+				while ((info = br.readLine()) != null) {
 					if (output == false && info.equals("")) {
-						output = true;
-						is.mark(info.length() + 1);
 						break;
 					} else if (output == false) {
 						if (info.split(": ").length != 2 && !info.equals("")) {
@@ -72,40 +67,30 @@ public class HttpQuery {
 							else if (result[0].equals("Content-Encoding"))
 								gzip = result[1].equals("gzip");
 						}
-					} else { // if comes to the message body
-						break;
 					}
 				}
-				DataInputStream isdata = new DataInputStream(is);
-				if (chuncked) {
-					handleChunked(isdata);
-				} else {
-					if (len != 1) {
-						byte[] b = new byte[len];
-						int i = 0;// = isdata.read(b);
-						while (len > 0) {
-							i = isdata.read(b, i, len);
-							if (i < 0)
-								break;
-							len -= i;
-						}
-						System.out.print(new String(b));
-					} else {
-						String read;
-						while ((read = br.readLine()) != null) {
-							System.out.print(read);
-						}
-					}
-				}
-			} else {
-				System.err.println("Http error: Broken response: " + info + "!");
-				return;
-			}
 
-			is.close();
-			pw.close();
-			os.close();
-			socket.close();
+				if (chuncked) {
+					handleChunked(br);
+				} else if (!chuncked && !gzip){
+					String read;
+					while (len > 0 && (read = br.readLine()) != null) {
+						len -= read.getBytes().length;
+						System.out.print(read);
+						if (len > 0) // readline() may eliminate the crlf
+							System.out.print("\r\n");
+					}
+					if (len == -1) {// didn't specify the length
+						while ((read = br.readLine()) != null) 
+							System.out.print(read+"\r\n");
+					}
+				}
+
+				is.close();
+				pw.close();
+				os.close();
+				socket.close();
+			}
 		} catch (SocketTimeoutException e) {
 			System.err.println("Http error: Time out!");
 		} catch (NumberFormatException e) {
@@ -117,55 +102,26 @@ public class HttpQuery {
 		}
 	}
 
-	private void handleChunked(DataInputStream isdata) throws IOException {
-		// String line = br.readLine();
-		// if (line == null)
-		// return null;
-		// byte[] result = new byte[0];
-		byte[] temp;
-		int i = 0;
-		int size = readChunkSize(isdata);
-		// System.out.println("size: "+size); // debug
+	private void handleChunked(BufferedReader br) throws IOException {
+		char[] temp;
+		int size = readChunkSize(br);
+		if (size < 0)
+			return;
 		while (size > 0) {
-			temp = new byte[size];
+			temp = new char[size];
 			int j = 0;
-			i += size;
-			// br.close();
-			while (size > j) { // read data of one chunk
-				// DataInputStream isdata = new DataInputStream(is);
-				j += isdata.read(temp, j, size - j);
-				// System.out.println(j);
-				// size -= j;
-				// isdata.close();
-			}
-			System.out.print(new String(temp, "utf-8"));
-			// int l = result.length;
-			// byte[] t = new byte[l];
-			// if (result.length > 0)
-			// System.arraycopy(result, 0, t, 0, result.length);
-			// result = new byte[l + size];
-			// System.arraycopy(t, 0, result, 0, l);
-			// System.arraycopy(temp, 0, result, l, size);
+			while (size > j) // read data of one chunk
+				j += br.read(temp, j, size - j);
 
-			isdata.skipBytes(2);
-			size = readChunkSize(isdata);
+			for (char c : temp)
+				System.out.print(c);
+			br.readLine();
+			size = readChunkSize(br);
 		}
 	}
 
-	private int readChunkSize(DataInputStream isdata) throws IOException {
-		ArrayList<Byte> temp = new ArrayList<Byte>();
-		byte curl;
-		int i = 0;
-		while ((curl = isdata.readByte()) != 0x0a) { // read chunk size
-			if (i > 0 && temp.get(i - 1) == 0x0b) // and chunk extension
-				break;
-			i++;
-			temp.add(curl);
-		}
-		byte[] t = new byte[temp.size() - 1];
-		for (int j = 0; j < t.length; j++) // ArrayList to Array
-			t[j] = temp.get(j);
-		String line = new String(t);
+	private int readChunkSize(BufferedReader br) throws IOException {
+		String line = br.readLine();
 		if (line.contains(":"))
 			line = line.split(":")[0];
 		return Integer.valueOf(line, 16);
